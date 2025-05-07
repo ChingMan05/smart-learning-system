@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能学习与办公自动化系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+
+    <style>
+        .content-container {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        .navbar {
+            margin-bottom: 20px;
+        }
+
+        /* 聊天界面样式 */
+        .chat-container {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .online-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: -10px;
+            margin-bottom: 10px;
+        }
+
+        .online-status.online {
+            background-color: #28a745;
+        }
+
+        .online-status.offline {
+            background-color: #6c757d;
+        }
+
+        .online-status.busy {
+            background-color: #ffc107;
+        }
+
+        .message {
+            max-width: 80%;
+        }
+
+        .message.received {
+            margin-right: auto;
+        }
+
+        .message.sent {
+            margin-left: auto;
+        }
+
+        .message-content {
+            position: relative;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .read-status {
+            font-size: 0.8em;
+            color: #6c757d;
+            position: absolute;
+            bottom: -20px;
+            right: 0;
+        }
+
+        .members-list {
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .member-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+
+        .member-name {
+            margin-left: 5px;
+            font-size: 0.9em;
+        }
+        /* 添加视频会议样式 */
+        .video-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .video-box {
+            flex: 1;
+            min-width: 400px;
+        }
+        
+        .video-controls {
+            margin: 20px 0;
+        }
+
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation Bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">智能学习与办公系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('loginPage')">登录</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('registerPage')">注册</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('mainPage')">主界面</a>
+                    </li>
+                    <!-- <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('documentPage')">智能文档助手</a>
+                    </li> -->
+                    <!-- <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('emailPage')">邮件自动化</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('filePage')">文件管理</a>
+                    </li> -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('taskPage')">任务管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('chatPage')">在线聊天</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('videoPage')">视频会议</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('settingsPage')">设置</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Login Page -->
+        <div id="loginPage" class="content-container active">
+            <h2>登录</h2>
+            <form>
+                <div class="mb-3">
+                    <label for="loginEmail" class="form-label">邮箱</label>
+                    <input type="email" class="form-control" id="loginEmail" placeholder="请输入邮箱">
+                </div>
+                <div class="mb-3">
+                    <label for="loginPassword" class="form-label">密码</label>
+                    <input type="password" class="form-control" id="loginPassword" placeholder="请输入密码">
+                </div>
+                <button type="submit" class="btn btn-primary">登录</button>
+                <p class="mt-3">没有账号？<a href="#" onclick="showPage('registerPage')">立即注册</a></p>
+            </form>
+        </div>
+
+        <!-- Register Page -->
+        <div id="registerPage" class="content-container">
+            <h2>注册</h2>
+            <form>
+                <div class="mb-3">
+                    <label for="registerUsername" class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="registerUsername" placeholder="请输入用户名">
+                </div>
+                <div class="mb-3">
+                    <label for="registerEmail" class="form-label">邮箱</label>
+                    <input type="email" class="form-control" id="registerEmail" placeholder="请输入邮箱">
+                </div>
+                <div class="mb-3">
+                    <label for="registerPassword" class="form-label">密码</label>
+                    <input type="password" class="form-control" id="registerPassword" placeholder="请输入密码">
+                </div>
+                <div class="mb-3">
+                    <label for="confirmPassword" class="form-label">确认密码</label>
+                    <input type="password" class="form-control" id="confirmPassword" placeholder="确认密码">
+                </div>
+                <button type="submit" class="btn btn-primary">注册</button>
+                <p class="mt-3">已有账号？<a href="#" onclick="showPage('loginPage')">立即登录</a></p>
+            </form>
+        </div>
+
+        <!-- Main Page -->
+        <div id="mainPage" class="content-container">
+            <h2>主界面</h2>
+            <p>欢迎进入智能学习与办公系统！选择左侧菜单以访问各个功能模块。</p>
+                <!-- 课表导入模块 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">课程表管理</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <input type="file" id="timetableUpload" accept=".csv" class="form-control">
+                        <small class="form-text text-muted">
+                            支持CSV格式（列：Course Name,Day,Start Time,End Time,Location）
+                        </small>
+                    </div>
+                    <button class="btn btn-primary" onclick="uploadTimetable()">
+                        <i class="bi bi-upload"></i> 导入课表
+                    </button>
+                    
+                    <!-- 课表展示 -->
+                    <div id="timetablePreview" class="mt-4">
+                        <h5>本周课表</h5>
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>课程名称</th>
+                                    <th>星期</th>
+                                    <th>时间</th>
+                                    <th>地点</th>
+                                </tr>
+                            </thead>
+                            <tbody id="timetableContent">
+                                <!-- 动态加载内容 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Page (智能文档助手) -->
+        <div id="documentPage" class="content-container">
+            <h2>智能文档助手</h2>
+            <p>自动生成学习计划、周报，记录学习时长。</p>
+            <button class="btn btn-primary">生成周报</button>
+        </div>
+
+        <!-- Email Page (邮件自动化) -->
+        <div id="emailPage" class="content-container">
+            <h2>邮件自动化</h2>
+            <p>自动发送学习计划、作业提醒等邮件。</p>
+            <button class="btn btn-primary">发送邮件</button>
+        </div>
+
+        <!-- File Page (文件管理) -->
+        <div id="filePage" class="content-container">
+            <h2>文件管理</h2>
+            <p>上传、下载、分类管理文件。</p>
+            <button class="btn btn-primary">上传文件</button>
+        </div>
+
+        <!-- Task Page (任务管理) -->
+        <div id="taskPage" class="content-container">
+            <h2>任务管理</h2>
+            <p>创建、分配、追踪任务。</p>
+            <form id="createTaskForm">
+                <div class="mb-3">
+                    <label for="taskTitle" class="form-label">任务标题</label>
+                    <input type="text" class="form-control" id="taskTitle" placeholder="请输入任务标题" required>
+                </div>
+                <div class="mb-3">
+                    <label for="taskDescription" class="form-label">任务描述</label>
+                    <textarea class="form-control" id="taskDescription" placeholder="请输入任务描述" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="taskDueDate" class="form-label">截止日期</label>
+                    <input type="date" class="form-control" id="taskDueDate" required>
+                </div>
+                <button type="submit" class="btn btn-primary">创建任务</button>
+            </form>
+            <ul id="task-list" class="list-group mt-3"></ul>
+        </div>
+
+        <!-- Chat Page (在线聊天) -->
+        <div id="chatPage" class="content-container">
+            <!-- 聊天头部 -->
+            <div class="chat-header border-bottom p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2>团队聊天室</h2>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="chatSettingsDropdown" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i> 设置
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">查看聊天记录</a></li>
+                            <li><a class="dropdown-item" href="#">清空聊天窗口</a></li>
+                            <li><a class="dropdown-item" href="#">通知设置</a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- 成员列表 -->
+                <div class="members-list mt-2 d-flex flex-wrap">
+                    <div class="member-item me-2">
+                        <img src="https://via.placeholder.com/30" class="rounded-circle" alt="用户头像">
+                        <span class="online-status online"></span>
+                        <span class="member-name">张三</span>
+                    </div>
+                    <!-- 更多成员... -->
+                </div>
+            </div>
+
+            <!-- 聊天主体区域 -->
+            <div class="chat-container">
+                <!-- 搜索栏 -->
+                <div class="search-bar mb-3">
+                    <input type="text" class="form-control" placeholder="搜索聊天记录...">
+                </div>
+
+                <!-- 消息列表区域 -->
+                <div class="messages-container mb-3" style="height: 400px; overflow-y: auto;">
+                    <!-- 示例消息 -->
+                    <div class="message received mb-3">
+                        <div class="message-header">
+                            <img src="https://via.placeholder.com/30" class="rounded-circle" alt="用户头像">
+                            <span class="sender-name">李四</span>
+                            <span class="message-time">10:30</span>
+                        </div>
+                        <div class="message-content p-2 bg-light rounded">
+                            这是一条示例消息
+                            <span class="read-status">已读</span>
+                        </div>
+                    </div>
+                    <!-- 更多消息... -->
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="input-area border-top pt-3">
+                    <div class="toolbar mb-2">
+                        <button class="btn btn-light me-2" title="表情"><i class="bi bi-emoji-smile"></i></button>
+                        <button class="btn btn-light me-2" title="上传文件"><i class="bi bi-paperclip"></i></button>
+                        <button class="btn btn-light me-2" title="语音消息"><i class="bi bi-mic"></i></button>
+                        <button class="btn btn-light me-2" title="视频通话"><i class="bi bi-camera-video"></i></button>
+                    </div>
+                    <div class="input-group">
+                        <textarea class="form-control" placeholder="输入消息..." rows="2"></textarea>
+                        <button class="btn btn-primary"><i class="bi bi-send"></i> 发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 视频会议页面 -->
+        <div id="videoPage" class="content-container">
+            <h2>视频会议</h2>
+            <div class="row">
+                <!-- 在线用户列表 -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header">
+                            在线用户
+                        </div>
+                        <div class="card-body">
+                            <ul id="onlineVideoUsers" class="list-group">
+                                <!-- 用户列表将通过 JavaScript 动态添加 -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 视频区域 -->
+                <div class="col-md-9">
+                    <div class="video-container">
+                        <div class="video-box">
+                            <h3>本地视频</h3>
+                            <video id="localVideo" class="w-100" style="height: 300px;"></video>
+                        </div>
+                        <div class="video-box">
+                            <h3>远程视频</h3>
+                            <video id="remoteVideo" class="w-100" style="height: 300px;"></video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-controls mt-3">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text">我的ID</span>
+                            <input type="text" class="form-control" id="myPeerid" readonly>
+                            <span class="input-group-text">对方ID</span>
+                            <input type="text" class="form-control" id="youPeerid" placeholder="请输入对方ID">
+                            <button class="btn btn-primary" id="callBtn">开始通话</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page (设置与个人信息) -->
+        <div id="settingsPage" class="content-container">
+            <h2>设置与个人信息</h2>
+            <form>
+                <div class="mb-3">
+                    <label for="username" class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="username" value="张三">
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">邮箱</label>
+                    <input type="email" class="form-control" id="email" value="zhangsan@example.com">
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">修改密码</label>
+                    <input type="password" class="form-control" id="password" placeholder="请输入新密码">
+                </div>
+                <button type="submit" class="btn btn-primary">保存设置</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/peerjs/1.3.1/peerjs.min.js"></script>
+    <script>
+    
+    // 在页面切换时初始化视频页面
+    function showPage(pageId) {
+        const pages = document.querySelectorAll('.content-container');
+        pages.forEach(page => page.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        
+        // 当切换到视频页面时初始化
+        if (pageId === 'videoPage') {
+            initVideoPage();
+        }
+    }
+
+
+          // WebRTC相关代码
+        function getUserMedia(constrains,success,error){
+            if(navigator.mediaDevices.getUserMedia){
+                navigator.mediaDevices.getUserMedia(constrains).then(success).catch(error);
+            } else if (navigator.webkitGetUserMedia){
+                navigator.webkitGetUserMedia(constrains).then(success).catch(error);
+            } else if (navigator.mozGetUserMedia){
+                navagator.mozGetUserMedia(constrains).then(success).catch(error);
+            } else if (navigator.getUserMedia){
+                navigator.getUserMedia(constrains).then(success).catch(error);
+            }
+        }
+        // 在现有的 WebRTC 相关代码中添加以下内容
+        function initVideoPage() {
+            if (!currentUser) {
+                alert('请先登录');
+                return;
+            }
+
+            let peer = null;
+            let localStream = null;
+
+            // 初始化视频设备
+            getUserMedia({video: true, audio: true}, async function(stream) {
+                try {
+                    localStream = stream;
+                    localVideo.srcObject = stream;
+                    localVideo.autoplay = true;
+                    localVideo.play();
+
+                    // 创建新的 Peer 连接并等待连接建立
+                    peer = new Peer();
+                    
+                    // 将 peer.on('open') 包装成 Promise
+                    await new Promise((resolve, reject) => {
+                        peer.on('open', async function(id) {
+                            try {
+                                console.log('获取到 Peer ID:', id);
+                                $("#myPeerid").val(id);
+                                
+                                // 注册视频用户
+                                const response = await fetch('http://localhost:8082/api/video/register', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        username: currentUser.username,
+                                        peer_id: id
+                                    })
+                                });
+
+                                if (!response.ok) {
+                                    throw new Error('注册视频用户失败');
+                                }
+
+                                // 开始定期获取在线用户列表
+                                updateOnlineUsers();
+                                setInterval(updateOnlineUsers, 5000);
+                                
+                                resolve();
+                            } catch (error) {
+                                reject(error);
+                            }
+                        });
+
+                        peer.on('error', function(err) {
+                            reject(err);
+                        });
+                    });
+
+                        // Peer 连接建立后设置呼叫处理
+                        peer.on('call', function(call) {
+                            call.answer(localStream);
+                            call.on('stream', function(remoteStream) {
+                                remoteVideo.srcObject = remoteStream;
+                                remoteVideo.autoplay = true;
+                            });
+                        });
+
+                        // 处理呼叫按钮点击
+                        $('#callBtn').click(function(){
+                            var remoteId = $("#youPeerid").val();
+                            if(remoteId == ""){
+                                alert("请选择要呼叫的用户");
+                                return;
+                            }
+                            
+                            // 添加自身ID检查
+                            if(remoteId === $("#myPeerid").val()) {
+                                alert("不能呼叫自己");
+                                return;
+                            }
+
+                            var call = peer.call(remoteId, localStream);
+                            call.on('stream', function(remoteStream) {
+                                remoteVideo.srcObject = remoteStream;
+                                remoteVideo.autoplay = true;
+                            });
+                        });
+
+                } catch (error) {
+                    console.error('初始化视频通话失败:', error);
+                    alert('初始化视频通话失败，请刷新页面重试');
+                }
+            }, function(err) {
+                console.log('Failed to get local stream', err);
+                alert('无法访问摄像头和麦克风');
+            });
+        }
+        // $(function(){
+        //     var localVideo = document.querySelector('video#localVideo');
+        //     var remoteVideo = document.querySelector('video#remoteVideo');
+        //     var localStream = null;
+
+        //     getUserMedia({video: true, audio: true}, function(stream) {
+        //         localStream = stream;
+        //         localVideo.srcObject = stream;
+        //         localVideo.autoplay = true;
+        //         localVideo.play();
+        //     }, function(err) {
+        //         console.log('Failed to get local stream', err);
+        //     });
+
+        //     var peer = new Peer();
+        //     peer.on('open', function(id) {
+        //         $("#myPeerid").val(id);
+        //         if (currentUser) {
+        //             // 存储视频通话信息
+        //             fetch('http://localhost:8082/api/video/register', {
+        //                 method: 'POST',
+        //                 headers: {
+        //                     'Content-Type': 'application/json',
+        //                 },
+        //                 body: JSON.stringify({
+        //                     user_id: currentUser.email,
+        //                     peer_id: id
+        //                 })
+        //             });
+        //         }
+        //     });
+
+        //     peer.on('call', function(call) {
+        //         call.answer(localStream);
+        //         call.on('stream', function(remoteStream) {
+        //             remoteVideo.srcObject = remoteStream;
+        //             remoteVideo.autoplay = true;
+        //         });
+        //     });
+
+        //     $('#callBtn').click(function(){
+        //         var remoteId = $("#youPeerid").val();
+        //         if(remoteId == ""){
+        //             alert("请输入对方ID");
+        //             return;
+        //         }
+
+        //         var call = peer.call(remoteId, localStream);
+        //         call.on('stream', function(remoteStream) {
+        //             remoteVideo.srcObject = remoteStream;
+        //             remoteVideo.autoplay = true;
+        //         });
+        //         call.on('close', function() {
+        //             console.log("call close");
+        //         });
+        //         call.on('error', function(err) {
+        //             console.log(err);
+        //         });
+        //     });
+        // });
+        // 更新在线用户列表
+        async function updateOnlineUsers() {
+            try {
+                const response = await fetch('http://localhost:8082/api/video/users');
+                const data = await response.json();
+                const usersList = document.getElementById('onlineVideoUsers');
+                usersList.innerHTML = '';
+                
+                data.users.forEach(user => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        li.innerHTML = `
+                            ${user.username}
+                            <button class="btn btn-sm btn-primary" onclick="startCall('${user.peer_id}')">
+                                呼叫
+                            </button>
+                        `;
+                        usersList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('获取在线用户失败:', error);
+            }
+        }
+        // 开始呼叫
+        function startCall(peerId) {
+            $("#youPeerid").val(peerId);
+            $("#callBtn").click();
+        }
+        // 在用户离开页面时清理
+        window.addEventListener('beforeunload', function() {
+            if (currentUser) {
+                fetch('http://localhost:8082/api/video/unregister', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: currentUser.username
+                    })
+                });
+            }
+        });
+        // 在WebSocket相关代码之前添加用户认证相关代码
+        let currentUser = null;
+
+        // 修改注册函数
+        async function register() {
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8082/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, email, password }),
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('注册成功！');
+                    showPage('loginPage');
+                } else {
+                    alert(data.detail);
+                }
+            } catch (error) {
+                console.error('注册失败:', error);
+                alert('注册失败，请稍后重试');
+            }
+        }
+
+        // 修改登录函数
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('http://localhost:8082/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    currentUser = data.user;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    alert('登录成功！');
+                    showPage('mainPage');
+                    updateUserInfo();
+                    initWebSocket();
+                } else {
+                    alert(data.detail);
+                }
+            } catch (error) {
+                console.error('登录失败:', error);
+                alert('登录失败，请稍后重试');
+            }
+        }
+
+        // 更新用户信息
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('username').value = currentUser.username;
+                document.getElementById('email').value = currentUser.email;
+            }
+        }
+
+        // 修改表单提交事件
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateUserInfo();
+                showPage('mainPage');
+                initWebSocket();
+            }
+            // 注册表单提交
+            document.querySelector('#registerPage form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                register();
+            });
+
+            // 登录表单提交
+            document.querySelector('#loginPage form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                login();
+            });
+        });
+        // WebSocket聊天相关代码
+        let ws = null;
+        
+        // 修改WebSocket初始化函数
+        function initWebSocket() {
+            if (!currentUser) return;
+            
+            ws = new WebSocket(`ws://localhost:8082/ws/chat/?user_email=${currentUser.email}`);
+            
+            ws.onopen = function() {
+                console.log('WebSocket连接已建立');
+            };
+            
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                displayMessage(message);
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket连接已关闭');
+                setTimeout(initWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket错误:', error);
+            };
+        }
+
+        // 修改显示消息函数
+        function displayMessage(message) {
+            console.log('显示消息被调用:', message); // 添加调试日志
+            const messagesContainer = document.querySelector('.messages-container');
+            // 判断是否是自己发送的消息
+            const isSelf = message.username === currentUser?.username;
+            const messageHtml = `
+                <div class="message ${isSelf ? 'sent' : 'received'} mb-3">
+                    <div class="message-header">
+                        <img src="${message.avatar}" class="rounded-circle" alt="用户头像">
+                        <span class="sender-name">${message.username}</span>
+                        <span class="message-time">${message.time}</span>
+                        <span class="debug-info">[Debug: ${new Date().toLocaleTimeString()}]</span>
+                    </div>
+                    <div class="message-content p-2 bg-light rounded">
+                        ${message.content}
+                    </div>
+                </div>
+            `;
+            messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 修改发送消息函数
+        function sendMessage(content) {
+            if (!currentUser) {
+                alert('请先登录');
+                return;
+            }
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                console.log('发送消息:', content); // 添加调试日志
+                const message = {
+                    username: currentUser.username,
+                    content: content
+                };
+                ws.send(JSON.stringify(message));
+            }
+        }
+
+        // 在页面加载完成后初始化WebSocket
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化WebSocket连接
+            initWebSocket();
+
+            // 绑定发送消息按钮的点击事件
+            const sendButton = document.querySelector('#chatPage .btn-primary');
+            const messageInput = document.querySelector('#chatPage textarea');
+            
+            sendButton.addEventListener('click', function() {
+                const content = messageInput.value.trim();
+                if (content) {
+                    sendMessage(content);
+                    messageInput.value = '';
+                }
+            });
+
+            // 绑定输入框的回车发送功能
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendButton.click();
+                }
+            });
+        });
+    // 文件上传处理
+async function uploadTimetable() {
+    const fileInput = document.getElementById('timetableUpload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('请选择要上传的文件');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('email', currentUser.email);
+
+    try {
+        const response = await fetch('http://localhost:8082/api/timetable/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            loadTimetable();
+        } else {
+            throw new Error(result.detail || '上传失败');
+        }
+    } catch (error) {
+        console.error('上传错误:', error);
+        alert(`上传失败: ${error.message}`);
+    }
+}
+
+// 加载课表数据
+async function loadTimetable() {
+    try {
+        const response = await fetch(`http://localhost:8082/api/timetable?email=${currentUser.email}`);
+        if (!response.ok) {
+            throw new Error('获取课表失败');
+        }
+        
+        const data = await response.json();
+        const tbody = document.getElementById('timetableContent');
+        tbody.innerHTML = '';
+        
+        data.timetable.forEach(entry => {
+            const row = `
+                <tr>
+                    <td>${entry.course_name}</td>
+                    <td>${entry.day_of_week}</td>
+                    <td>${entry.start_time} - ${entry.end_time}</td>
+                    <td>${entry.location}</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    } catch (error) {
+        console.error('加载课表失败:', error);
+        alert(error.message);
+    }
+}
+
+// 修改页面切换函数
+function showPage(pageId) {
+    const pages = document.querySelectorAll('.content-container');
+    pages.forEach(page => page.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+    
+    // 加载主界面时刷新课表
+    if (pageId === 'mainPage') {
+        if (currentUser) loadTimetable();
+    }
+    
+    // 视频页面初始化
+    if (pageId === 'videoPage') {
+        initVideoPage();
+    }
+}
+
+
+async function loadTasks() {
+        if (!currentUser) {
+            alert('请先登录');
+            return;
+        }
+        try {
+            const response = await fetch(`http://localhost:8082/api/tasks?email=${currentUser.email}`);
+            const data = await response.json();
+            const list = document.getElementById('task-list');
+            list.innerHTML = '';
+
+            data.tasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                    <div>
+                        <strong>${task.title}</strong> - ${task.description} - 截止: ${task.due_date}
+                        <span class="badge ${new Date(task.due_date) < new Date() ? 'bg-danger' : 'bg-success'} ms-2">
+                            ${new Date(task.due_date) < new Date() ? '过期' : '进行中'}
+                        </span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-warning me-2" onclick="editTask(${index}, '${task.title}', '${task.description}', '${task.due_date}')">编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTask(${index})">删除</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        } catch (error) {
+            console.error('加载任务失败:', error);
+            alert('加载任务失败，请稍后重试');
+        }
+    }
+
+    async function deleteTask(index) {
+        if (!currentUser) {
+            alert('请先登录');
+            return;
+        }
+        if (confirm('确定删除此任务？')) {
+            try {
+                const formData = new FormData();
+                formData.append("email", currentUser.email);
+                formData.append("task_index", index);
+                await fetch("http://localhost:8082/api/tasks/delete", {
+                    method: "POST",
+                    body: formData
+                });
+                loadTasks();
+            } catch (error) {
+                console.error('删除任务失败:', error);
+                alert('删除任务失败，请稍后重试');
+            }
+        }
+    }
+
+    function editTask(index, title, description, due_date) {
+        if (!currentUser) {
+            alert('请先登录');
+            return;
+        }
+        const modal = `
+            <div class="modal" tabindex="-1" id="editTaskModal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">编辑任务</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editTaskForm">
+                                <div class="mb-3">
+                                    <label for="editTaskTitle" class="form-label">任务标题</label>
+                                    <input type="text" class="form-control" id="editTaskTitle" value="${title}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editTaskDescription" class="form-label">任务描述</label>
+                                    <textarea class="form-control" id="editTaskDescription" required>${description}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editTaskDueDate" class="form-label">截止日期</label>
+                                    <input type="date" class="form-control" id="editTaskDueDate" value="${due_date}" required>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary" onclick="saveEdit(${index})">保存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modal);
+        new bootstrap.Modal(document.getElementById('editTaskModal')).show();
+    }
+
+    async function saveEdit(index) {
+    const title = document.getElementById('editTaskTitle').value;
+    const description = document.getElementById('editTaskDescription').value;
+    const due_date = document.getElementById('editTaskDueDate').value;
+
+    if (!title || !description || !due_date) {
+        alert('请填写完整的任务信息');
+        return;
+    }
+
+    // 验证日期格式
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(due_date)) {
+        alert('截止日期必须为 YYYY-MM-DD 格式');
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append("email", currentUser.email);
+        formData.append("task_index", index);
+        formData.append("title", title);
+        formData.append("description", description);
+        formData.append("due_date", due_date);
+
+        const response = await fetch("http://localhost:8082/api/tasks/edit", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.detail || '编辑任务失败');
+        }
+
+        const modal = document.getElementById('editTaskModal');
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        bootstrapModal.hide();
+        modal.remove();
+
+        alert(data.message);
+        loadTasks();
+    } catch (error) {
+        console.error('编辑任务失败:', error);
+        alert(`编辑任务失败: ${error.message}`);
+    }
+}
+    document.getElementById('createTaskForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    if (!currentUser) {
+        alert('请先登录');
+        return;
+    }
+    const title = document.getElementById('taskTitle').value;
+    const description = document.getElementById('taskDescription').value;
+    const due_date = document.getElementById('taskDueDate').value;
+
+    if (!title || !description || !due_date) {
+        alert('请填写完整的任务信息');
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append("email", currentUser.email);
+        formData.append("title", title);
+        formData.append("description", description);
+        formData.append("due_date", due_date);
+
+        const response = await fetch("http://localhost:8082/api/tasks/add", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            alert(data.message);
+            loadTasks();
+            this.reset();
+        } else {
+            alert(data.detail);
+        }
+    } catch (error) {
+        console.error('创建任务失败:', error);
+        alert('创建任务失败，请稍后重试');
+    }
+});
+
+    function showPage(pageId) {
+        const pages = document.querySelectorAll('.content-container');
+        pages.forEach(page => page.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+
+        if (pageId === 'mainPage' && currentUser) loadTimetable();
+        if (pageId === 'videoPage') initVideoPage();
+        if (pageId === 'taskPage') loadTasks();
+    }
+    </script>
+</body>
+</html>
