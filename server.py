@@ -11,6 +11,9 @@ from io import StringIO
 from apscheduler.schedulers.background import BackgroundScheduler
 import smtplib
 from email.mime.text import MIMEText
+from pydantic import BaseModel, EmailStr, field_validator
+import re
+
 # 定义请求模型
 class UserLogin(BaseModel):
     email: str
@@ -89,7 +92,145 @@ async def register(user_data: UserRegister):
     if success:
         return {"message": "注册成功"}
     raise HTTPException(status_code=400, detail="邮箱已被注册")
+# 用户更新信息模型
+class UserUpdate(BaseModel):
+    email: str  
+    new_username: str = None
+    new_email: str = None  
+    new_password: str = None
+    
+    @field_validator('new_email')
+    @classmethod
+    def validate_email(cls, v):
+        # 修复：只在有值时验证
+        if v is not None and v.strip():
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v.strip()):
+                raise ValueError('邮箱格式不正确')
+            return v.strip()
+        return v
+    
+    @field_validator('new_username')
+    @classmethod
+    def validate_username(cls, v):
+        # 修复：只在有值时验证，并且允许更灵活的格式
+        if v is not None and v.strip():
+            username = v.strip()
+            if not username:
+                raise ValueError('用户名不能为空')
+            if len(username) > 20:
+                raise ValueError('用户名不能超过20个字符')
+            # 修改正则表达式，允许更多字符
+            if not re.match(r'^[\u4e00-\u9fa5a-zA-Z0-9_\-\s]+$', username):
+                raise ValueError('用户名包含非法字符')
+            return username
+        return v
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_password(cls, v):
+        # 修复：只在有值时验证
+        if v is not None and v.strip():
+            if len(v.strip()) < 6:
+                raise ValueError('密码长度至少6位')
+            if len(v.strip()) > 50:
+                raise ValueError('密码长度不能超过50位')
+            return v.strip()
+        return v
 
+# 获取用户信息接口
+@app.get("/api/user/profile")
+async def get_user_profile(email: str):
+    """获取用户个人信息"""
+    try:
+        user = data_store.get_user(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        
+        # 返回用户信息（不包含密码）
+        return {
+            "user": {
+                "username": user.username,
+                "email": user.email
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/user/profile")
+async def update_user_profile(user_update: UserUpdate):
+    """更新用户个人信息"""
+    try:
+        # 验证原用户是否存在
+        user = data_store.get_user(user_update.email)
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        
+        # 检查是否有任何实际更新
+        has_updates = False
+        updated_fields = {}
+        
+        # 更新用户名
+        if user_update.new_username is not None and user_update.new_username.strip():
+            new_username = user_update.new_username.strip()
+            if new_username != user.username:
+                user.username = new_username
+                updated_fields['username'] = new_username
+                has_updates = True
+        
+        # 更新邮箱
+        if user_update.new_email is not None and user_update.new_email.strip():
+            new_email = user_update.new_email.strip()
+            if new_email != user_update.email:
+                # 检查新邮箱是否已被使用
+                if data_store.get_user(new_email):
+                    raise HTTPException(status_code=400, detail="新邮箱已被其他用户使用")
+                
+                # 更新邮箱（需要特殊处理，因为邮箱是主键）
+                old_email = user_update.email
+                user.email = new_email
+                # 在数据存储中更新邮箱键
+                data_store.users[new_email] = data_store.users.pop(old_email)
+                updated_fields['email'] = new_email
+                has_updates = True
+        
+        # 更新密码
+        if user_update.new_password is not None and user_update.new_password.strip():
+            user.password = user_update.new_password.strip()  # 实际项目中应该加密
+            updated_fields['password'] = '已更新'
+            has_updates = True
+        
+        if not has_updates:
+            raise HTTPException(status_code=400, detail="没有检测到任何更改")
+        
+        return {
+            "message": "用户信息更新成功",
+            "updated_fields": updated_fields,
+            "user": {
+                "username": user.username,
+                "email": user.email
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        # Pydantic 验证错误
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# 验证密码接口（用于敏感操作前的密码确认）
+@app.post("/api/user/verify-password")
+async def verify_password(email: str = Form(...), password: str = Form(...)):
+    """验证用户密码"""
+    try:
+        user = data_store.verify_user(email, password)
+        if user:
+            return {"message": "密码验证成功"}
+        else:
+            raise HTTPException(status_code=401, detail="密码错误")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 # WebSocket连接处理
 @app.websocket("/ws/chat/")
 async def websocket_endpoint(websocket: WebSocket):
@@ -346,6 +487,139 @@ async def edit_task(email: str = Form(...), task_index: int = Form(...), title: 
         raise HTTPException(status_code=404, detail="用户不存在")
     except IndexError:
         raise HTTPException(status_code=404, detail="任务索引无效")
+    
+# 课程更新请求模型
+class CourseUpdate(BaseModel):
+    email: str
+    course_name: str
+    day_of_week: str
+    start_time: str
+    end_time: str
+    location: str
+
+# 更新课程接口
+@app.put("/api/timetable/{course_id}")
+async def update_course(course_id: int, course_data: CourseUpdate):
+    try:
+        # 验证时间格式
+        try:
+            start = datetime.strptime(course_data.start_time, "%H:%M").time()
+            end = datetime.strptime(course_data.end_time, "%H:%M").time()
+            if start >= end:
+                raise HTTPException(status_code=400, detail="结束时间必须晚于开始时间")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="时间格式错误，请使用 HH:MM 格式")
+        
+        # 验证星期格式
+        valid_days = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+        if course_data.day_of_week not in valid_days:
+            raise HTTPException(status_code=400, detail="星期格式错误")
+            
+        # 构造更新的课程数据
+        updated_course = {
+            "course_name": course_data.course_name.strip(),
+            "day_of_week": course_data.day_of_week.strip(),
+            "start_time": course_data.start_time.strip(),
+            "end_time": course_data.end_time.strip(),
+            "location": course_data.location.strip()
+        }
+        
+        # 调用数据存储层更新课程
+        success = data_store.update_course(course_data.email, course_id, updated_course)
+        if success:
+            return {"message": "课程更新成功"}
+        else:
+            raise HTTPException(status_code=404, detail="课程不存在或更新失败")
+            
+    except KeyError:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 删除课程接口
+@app.delete("/api/timetable/{course_id}")
+async def delete_course(
+    course_id: int,
+    email: str
+):
+    try:
+        # 调用数据存储层删除课程
+        success = data_store.delete_course(email, course_id)
+        if success:
+            return {"message": "课程删除成功"}
+        else:
+            raise HTTPException(status_code=404, detail="课程不存在或删除失败")
+            
+    except KeyError:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 获取单个课程接口（可选，用于验证）
+@app.get("/api/timetable/{course_id}")
+async def get_course(course_id: int, email: str):
+    try:
+        course = data_store.get_course(email, course_id)
+        if course:
+            return {"course": course}
+        else:
+            raise HTTPException(status_code=404, detail="课程不存在")
+    except KeyError:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+ # 新增：单个课程添加模型
+class CourseAdd(BaseModel):
+    email: str
+    course_name: str
+    day_of_week: str
+    start_time: str
+    end_time: str
+    location: str
+
+# 新增：添加单个课程接口
+@app.post("/api/timetable/add")
+async def add_single_course(course_data: CourseAdd):
+    try:
+        # 验证时间格式
+        try:
+            start = datetime.strptime(course_data.start_time, "%H:%M").time()
+            end = datetime.strptime(course_data.end_time, "%H:%M").time()
+            if start >= end:
+                raise HTTPException(status_code=400, detail="结束时间必须晚于开始时间")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="时间格式错误，请使用 HH:MM 格式")
+        
+        # 验证星期格式
+        valid_days = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+        if course_data.day_of_week not in valid_days:
+            raise HTTPException(status_code=400, detail="星期格式错误")
+        
+        # 验证用户是否存在
+        user = data_store.get_user(course_data.email)
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        
+        # 构造课程数据
+        new_course = {
+            "course_name": course_data.course_name.strip(),
+            "day_of_week": course_data.day_of_week.strip(),
+            "start_time": course_data.start_time.strip(),
+            "end_time": course_data.end_time.strip(),
+            "location": course_data.location.strip(),
+            "last_reminder": None
+        }
+        
+        # 添加到用户的课表中
+        user.timetable.append(new_course)
+        
+        return {"message": "课程添加成功"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))   
     
 if __name__ == "__main__":
     import uvicorn

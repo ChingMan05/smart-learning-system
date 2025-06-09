@@ -57,7 +57,32 @@ class DataStore:
         if user and user.password == password:
             return user
         return None
-
+    def get_user(self, email: str):
+        """根据邮箱获取用户信息"""
+        return self.users.get(email)
+    
+    def update_user(self, email: str, **kwargs):
+        """更新用户信息"""
+        user = self.users.get(email)
+        if user:
+            for key, value in kwargs.items():
+                if hasattr(user, key) and value is not None:
+                    setattr(user, key, value)
+            return True
+        return False
+    
+    def email_exists(self, email: str):
+        """检查邮箱是否已存在"""
+        return email in self.users
+    
+    def change_user_email(self, old_email: str, new_email: str):
+        """更改用户邮箱（更新字典键）"""
+        if old_email in self.users and new_email not in self.users:
+            user = self.users.pop(old_email)
+            user.email = new_email
+            self.users[new_email] = user
+            return True
+        return False
     # 聊天消息相关方法
     def add_message(self, username: str, content: str):
         message = ChatMessage(
@@ -132,5 +157,89 @@ class DataStore:
             raise KeyError("用户不存在")
         if 0 <= index < len(self.users[email].tasks):
             self.users[email].tasks[index] = updated_task
+
+    #课表相关方法
+    
+    def update_course(self, email: str, course_id: int, updated_course: dict) -> bool:
+        """更新指定用户的课程信息"""
+        try:
+            if email not in self.users:
+                return False
+                
+            user = self.users[email]
+            
+            # 检查课程ID是否有效
+            if course_id < 0 or course_id >= len(user.timetable):
+                return False
+                
+            # 更新课程信息
+            user.timetable[course_id].update(updated_course)
+            
+            return True
+            
+        except Exception as e:
+            print(f"更新课程失败: {str(e)}")
+            return False
+
+    def delete_course(self, email: str, course_id: int) -> bool:
+        """删除指定用户的课程"""
+        try:
+            if email not in self.users:
+                return False
+                
+            user = self.users[email]
+            
+            # 检查课程ID是否有效
+            if course_id < 0 or course_id >= len(user.timetable):
+                return False
+                
+            # 删除课程
+            del user.timetable[course_id]
+            
+            return True
+            
+        except Exception as e:
+            print(f"删除课程失败: {str(e)}")
+            return False
+
+    def get_course(self, email: str, course_id: int) -> dict:
+        """获取指定用户的单个课程信息"""
+        try:
+            if email not in self.users:
+                return None
+                
+            user = self.users[email]
+            
+            # 检查课程ID是否有效
+            if course_id < 0 or course_id >= len(user.timetable):
+                return None
+                
+            return user.timetable[course_id]
+            
+        except Exception as e:
+            print(f"获取课程失败: {str(e)}")
+            return None
+
+    # 修改现有的 get_timetable 方法，为每个课程添加索引ID
+    def get_timetable(self, email: str) -> List[dict]:
+        """获取指定用户的课表，包含索引ID"""
+        if email in self.users:
+            timetable_with_id = []
+            for index, course in enumerate(self.users[email].timetable):
+                course_with_id = course.copy()
+                course_with_id['id'] = index  # 添加索引作为ID
+                timetable_with_id.append(course_with_id)
+            return timetable_with_id
+        return []
+    
+    def add_single_course(self, email: str, course: dict):
+        """添加单个课程到用户课表"""
+        if email not in self.users:
+            raise KeyError("用户不存在")
+        
+        # 添加提醒标记字段
+        course['last_reminder'] = None
+        self.users[email].timetable.append(course)
+        
 # 创建全局数据存储实例
 data_store = DataStore()
