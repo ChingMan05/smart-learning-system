@@ -11,6 +11,7 @@ from io import StringIO
 from apscheduler.schedulers.background import BackgroundScheduler
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from pydantic import BaseModel, EmailStr, field_validator
 import re
 
@@ -351,13 +352,348 @@ SMTP_CONFIG = {
     "host": "smtp.qq.com",
     "port": 465,
     "user": "859766083@qq.com",
-    "password": "jkpqfkttzglsbbgd"
+    "password": "egtlxbbogzqvbbia"
 }
+def create_reminder_email_content(course: dict, user_name: str = "同学"):
+    """创建丰富的HTML邮件内容 - 返回HTML和纯文本内容"""
+    
+    # 获取当前时间和课程时间
+    tz = timezone('Asia/Shanghai')
+    now = datetime.now(tz)
+    course_time = datetime.strptime(course['start_time'], "%H:%M").time()
+    course_datetime = datetime.combine(now.date(), course_time)
+    
+    # 计算剩余时间
+    time_diff = course_datetime - now.replace(tzinfo=None)
+    minutes_left = int(time_diff.total_seconds() / 60)
+    
+    # 根据课程时间段判断上课性质
+    hour = course_time.hour
+    if 8 <= hour < 12:
+        period = "上午"
+        greeting = "早上好"
+        icon = "🌅"
+    elif 12 <= hour < 18:
+        period = "下午"
+        greeting = "下午好"
+        icon = "☀️"
+    else:
+        period = "晚上"
+        greeting = "晚上好"
+        icon = "🌙"
+    
+    # 课程类型图标（可以根据课程名称智能判断）
+    course_icon = get_course_icon(course['course_name'])
+    
+    # HTML邮件模板
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #f5f5f5;
+            }}
+            .container {{
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 0;
+                border-radius: 10px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                overflow: hidden;
+            }}
+            .header {{
+                background: rgba(255,255,255,0.1);
+                color: white;
+                padding: 30px 20px;
+                text-align: center;
+                border-bottom: 1px solid rgba(255,255,255,0.2);
+            }}
+            .header h1 {{
+                margin: 0;
+                font-size: 28px;
+                font-weight: 300;
+            }}
+            .content {{
+                background: white;
+                padding: 30px;
+            }}
+            .alert-box {{
+                background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+                color: white;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+                margin-bottom: 25px;
+                font-size: 18px;
+                font-weight: bold;
+            }}
+            .course-info {{
+                background: #f8f9fa;
+                border-left: 4px solid #667eea;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 0 8px 8px 0;
+            }}
+            .info-row {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border-bottom: 1px solid #eee;
+            }}
+            .info-row:last-child {{
+                border-bottom: none;
+            }}
+            .info-label {{
+                font-weight: 600;
+                color: #666;
+                min-width: 80px;
+            }}
+            .info-value {{
+                color: #333;
+                font-weight: 500;
+            }}
+            .countdown {{
+                background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+                color: #2d3436;
+                padding: 15px;
+                border-radius: 8px;
+                text-align: center;
+                margin: 20px 0;
+                font-size: 16px;
+                font-weight: bold;
+            }}
+            .tips {{
+                background: #e8f4fd;
+                border: 1px solid #bee5eb;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 20px 0;
+            }}
+            .tips h3 {{
+                color: #0c5460;
+                margin-top: 0;
+                font-size: 16px;
+            }}
+            .tips ul {{
+                margin: 10px 0;
+                padding-left: 20px;
+            }}
+            .tips li {{
+                margin: 5px 0;
+                color: #155724;
+            }}
+            .footer {{
+                background: #f8f9fa;
+                padding: 20px;
+                text-align: center;
+                color: #666;
+                font-size: 14px;
+                border-top: 1px solid #eee;
+            }}
+            .emoji {{
+                font-size: 24px;
+                margin-right: 10px;
+            }}
+            .highlight {{
+                color: #667eea;
+                font-weight: bold;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>{icon} {greeting}，{user_name}！</h1>
+                <p>您的课程提醒到啦</p>
+            </div>
+            
+            <div class="content">
+                <div class="alert-box">
+                    ⏰ 距离上课还有 <span class="highlight">{minutes_left}</span> 分钟
+                </div>
+                
+                <div class="course-info">
+                    <div class="info-row">
+                        <span class="info-label">{course_icon} 课程</span>
+                        <span class="info-value">{course['course_name']}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📅 时间</span>
+                        <span class="info-value">{course['day_of_week']} {course['start_time']} - {course['end_time']}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📍 地点</span>
+                        <span class="info-value">{course['location']}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">⏱️ 时段</span>
+                        <span class="info-value">{period}课程</span>
+                    </div>
+                </div>
+                
+                <div class="countdown">
+                    🏃‍♀️ 建议现在开始准备出发！
+                </div>
+                
+                <div class="tips">
+                    <h3>📝 温馨提示：</h3>
+                    <ul>
+                        <li>🎒 请检查是否携带了相关课本和学习用品</li>
+                        <li>🚗 考虑当前交通状况，合理规划出行路线</li>
+                        <li>☔ 留意天气变化，必要时携带雨具</li>
+                        <li>🔋 确保手机电量充足，以备不时之需</li>
+                        <li>💧 记得携带水杯，保持水分充足</li>
+                    </ul>
+                </div>
+                
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                    <strong>🎯 今日目标：</strong> 准时到达，积极参与，收获满满！
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>📧 这是一封自动发送的课程提醒邮件</p>
+                <p>🕐 发送时间：{now.strftime('%Y年%m月%d日 %H:%M')}</p>
+                <p>💝 祝您学习愉快，天天进步！</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # 纯文本内容（作为备用）
+    text_content = f"""
+{greeting}，{user_name}！
+
+【课程提醒】
+距离上课还有 {minutes_left} 分钟
+
+课程信息：
+- 课程：{course['course_name']}
+- 时间：{course['day_of_week']} {course['start_time']} - {course['end_time']}
+- 地点：{course['location']}
+- 时段：{period}课程
+
+温馨提示：
+- 请检查是否携带了相关课本和学习用品
+- 考虑当前交通状况，合理规划出行路线
+- 留意天气变化，必要时携带雨具
+- 确保手机电量充足，以备不时之需
+- 记得携带水杯，保持水分充足
+
+今日目标：准时到达，积极参与，收获满满！
+
+发送时间：{now.strftime('%Y年%m月%d日 %H:%M')}
+祝您学习愉快，天天进步！
+    """
+    
+    return html_content, text_content
+
+def send_enhanced_reminder(to_email: str, course: dict, user_name: str = "同学"):
+    """发送增强版邮件提醒"""
+    
+    # 创建邮件内容
+    html_content, text_content = create_reminder_email_content(course, user_name)
+    
+    # 创建多部分邮件
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = f"📚 课程提醒：{course['course_name']} ({course['start_time']})"
+    msg['From'] = "859766083@qq.com"
+    msg['To'] = to_email
+    
+    # 添加纯文本和HTML部分
+    text_part = MIMEText(text_content, 'plain', 'utf-8')
+    html_part = MIMEText(html_content, 'html', 'utf-8')
+    
+    msg.attach(text_part)
+    msg.attach(html_part)
+    
+    try:
+        with smtplib.SMTP_SSL(SMTP_CONFIG['host'], SMTP_CONFIG['port']) as server:
+            server.login(SMTP_CONFIG['user'], SMTP_CONFIG['password'])
+            server.send_message(msg)
+        print(f"✅ 增强版提醒邮件已发送至 {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ 邮件发送失败：{str(e)}")
+        return False
+
+def get_course_icon(course_name: str) -> str:
+    """根据课程名称返回相应的图标"""
+    course_name_lower = course_name.lower()
+    
+    # 课程类型映射
+    course_icons = {
+        '数学': '🔢', '高数': '🔢', 'math': '🔢',
+        '英语': '🔤', 'english': '🔤',
+        '物理': '⚛️', 'physics': '⚛️',
+        '化学': '🧪', 'chemistry': '🧪',
+        '生物': '🧬', 'biology': '🧬',
+        '历史': '📜', 'history': '📜',
+        '地理': '🌍', 'geography': '🌍',
+        '政治': '🏛️', 'politics': '🏛️',
+        '语文': '📚', '中文': '📚',
+        '计算机': '💻', '编程': '💻', 'computer': '💻',
+        '体育': '⚽', 'sports': '⚽', '运动': '⚽',
+        '音乐': '🎵', 'music': '🎵',
+        '美术': '🎨', 'art': '🎨',
+        '经济': '💰', 'economics': '💰',
+        '管理': '📊', 'management': '📊',
+        '心理': '🧠', 'psychology': '🧠',
+        '医学': '⚕️', 'medicine': '⚕️',
+        '法律': '⚖️', 'law': '⚖️',
+        '实验': '🔬', 'lab': '🔬',
+    }
+    
+    # 尝试匹配课程名称
+    for keyword, icon in course_icons.items():
+        if keyword in course_name_lower:
+            return icon
+    
+    # 默认图标
+    return '📖'
+
+def send_enhanced_reminder(to_email: str, course: dict, user_name: str = "同学"):
+    """发送增强版邮件提醒"""
+    
+    # 创建邮件内容
+    html_content, text_content = create_reminder_email_content(course, user_name)
+    
+    # 创建多部分邮件
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = f"📚 课程提醒：{course['course_name']} ({course['start_time']})"
+    msg['From'] = "859766083@qq.com"
+    msg['To'] = to_email
+    
+    # 添加纯文本和HTML部分
+    text_part = MIMEText(text_content, 'plain', 'utf-8')
+    html_part = MIMEText(html_content, 'html', 'utf-8')
+    
+    msg.attach(text_part)
+    msg.attach(html_part)
+    
+    try:
+        with smtplib.SMTP_SSL(SMTP_CONFIG['host'], SMTP_CONFIG['port']) as server:
+            server.login(SMTP_CONFIG['user'], SMTP_CONFIG['password'])
+            server.send_message(msg)
+        print(f"✅ 增强版提醒邮件已发送至 {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ 邮件发送失败：{str(e)}")
+        return False
+   
 
 def check_reminders():
-    """ 每分钟执行一次的提醒检查 """
-    tz = timezone('Asia/Shanghai')  # 设定时区为上海时间
-    now = datetime.now(tz)  # 当前时间带时区
+    """每分钟执行一次的提醒检查"""
+    tz = timezone('Asia/Shanghai')
+    now = datetime.now(tz)
     weekday_map = {"周一":0, "周二":1, "周三":2, "周四":3, "周五":4, "周六":5, "周日":6}
     
     for user in data_store.users.values():
@@ -369,16 +705,18 @@ def check_reminders():
             # 解析课程时间
             try:
                 course_time = datetime.strptime(entry['start_time'], "%H:%M").time()
-                course_dt = datetime.combine(now.date(), course_time).replace(tzinfo=tz)  # 将 course_dt 转换为带时区的时间
+                course_dt = datetime.combine(now.date(), course_time).replace(tzinfo=tz)
             except ValueError:
                 continue
             
             # 计算时间差
             delta = (course_dt - now).total_seconds()
             if 0 < delta <= 600:  # 10分钟内
-                if entry['last_reminder'] != now.date().isoformat():
-                    send_reminder(user.email, entry)#测试时发给自己
+                if entry.get('last_reminder') != now.date().isoformat():
+                    # 使用增强版邮件提醒
+                    send_enhanced_reminder(user.email, entry, user.username)
                     entry['last_reminder'] = now.date().isoformat()
+
 
 def send_reminder(to_email:str, course: dict):
     """ 发送邮件提醒 """
