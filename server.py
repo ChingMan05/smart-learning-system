@@ -778,7 +778,7 @@ async def add_task(
         raise HTTPException(status_code=422, detail="截止日期必须为 YYYY-MM-DD 格式")
 
     task = Task(title=title, description=description, due_date=due_date)
-    data_store.add_task(email, task.dict())
+    data_store.add_task(email, task.model_dump())
     return {"message": "任务添加成功"}
 
 # 获取任务接口
